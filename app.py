@@ -1,9 +1,52 @@
 ########################################## Loading the Packages ########################################################
-import dash
-import plotly
-import numpy as np
-import pandas as pd
-import gunicorn
+import subprocess
+import sys
+
+
+def install(package):
+    """
+    :param package: str, name of the package to install in current environment
+    :return: None
+    """
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+
+# Imports the necessary packages if they are not in the current environment
+try:
+    import dash
+except ImportError:
+    install("dash==1.7.0")
+finally:
+    import dash
+
+try:
+    import plotly
+except ImportError:
+    install("plotly")
+finally:
+    import plotly
+
+try:
+    import numpy as np
+except ImportError:
+    install("numpy")
+finally:
+    import numpy as np
+
+try:
+    import pandas as pd
+except ImportError:
+    install("pandas")
+finally:
+    import pandas as pd
+    
+try:
+    import gunicorn
+except ImportError:
+    install("gunicorn")
+finally:
+    import gunicorn
+    
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
