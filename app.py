@@ -1,4 +1,5 @@
 ########################################## Loading the Packages ########################################################
+
 import subprocess
 import sys
 
@@ -39,14 +40,14 @@ except ImportError:
     install("pandas")
 finally:
     import pandas as pd
-    
+
 try:
     import gunicorn
 except ImportError:
     install("gunicorn")
 finally:
     import gunicorn
-    
+
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output, State
@@ -62,6 +63,8 @@ crime = pd.read_csv("Crime.csv", header=2)  # Intentional homicides (per 100.000
 
 investment = pd.read_csv("Investments.csv")
 
+receipts = pd.read_csv("receipts.csv", header=4)
+
 income = pd.read_csv("income.csv")
 
 ################################################## Data Cleaning #######################################################
@@ -75,23 +78,27 @@ departures.drop(departures[departures["Country Code"].isin(ccRemove["Country Cod
 income.drop(income[income["Country Code"].isin(ccRemove["Country Code"])].index, inplace=True)
 crime.drop(crime[crime["Country Code"].isin(ccRemove["Country Code"])].index, inplace=True)
 investment.drop(investment[investment["Country ISO3"].isin(ccRemove["Country Code"])].index, inplace=True)
+receipts.drop(receipts[receipts["Country Code"].isin(ccRemove["Country Code"])].index, inplace=True)
 
 # Removing the rows with NaN values throughout the years:
 arrivals = arrivals.dropna(thresh=len([year for year in range(1995, 2018)]) + 1)  # thresh=24
 departures = departures.dropna(thresh=len([year for year in range(1995, 2018)]) + 1)
+receipts = receipts.dropna(thresh=len([year for year in range(1995, 2018)]) + 1)
 
 # Now we can delete all columns with NaN values:
 arrivals = arrivals.dropna(axis=1, how="all")
 departures = departures.dropna(axis=1, how="all")
 crime = crime.dropna(axis=1, how='all')
 investment = investment.dropna(axis=1, how='all')
+receipts = receipts.dropna(axis=1, how='all')
 
 # Let us drop this unwanted column:
 arrivals = arrivals.drop(columns=["Indicator Name"])
 departures = departures.drop(columns=["Indicator Name"])
+receipts = receipts.drop(columns=["Indicator Name"])
 
 # Let us merge all our datasets into one:
-our_df_list = [arrivals, departures]
+our_df_list = [arrivals, departures, receipts]
 df = pd.concat(our_df_list)
 del our_df_list
 df = df.sort_values("Country Name")
@@ -115,6 +122,7 @@ df = df.dropna(thresh=len([year for year in range(1995, 2018)]) + 1)  # thresh=2
 
 arrivals.drop(columns=["Indicator Code", "Country Code"], inplace=True)
 departures.drop(columns=["Indicator Code", "Country Code"], inplace=True)
+receipts.drop(columns=["Indicator Code", "Country Code"], inplace=True)
 
 ########################################################################################################################
 
@@ -134,9 +142,11 @@ crime = pd.merge(crime, income, on="Country Code")
 
 country_options = [dict(label=country, value=country) for country in df["Country Name"].unique()]
 
-data_options = [{'label': 'Arrivals', 'value': 'Arrivals'}, {'label': 'Departures', 'value': 'Departures'},
+data_options = [{'label': 'Arrivals', 'value': 'Arrivals'},
+                {'label': 'Departures', 'value': 'Departures'},
                 {'label': 'Crime Rate', 'value': 'Crime Rate'},
-                {'label': 'Capital Investment', 'value': 'Capital Investment'}]
+                {'label': 'Capital Investment', 'value': 'Capital Investment'},
+                {'label': 'Receipts', 'value': 'Receipts'}]
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
@@ -267,6 +277,9 @@ def bar_plots(year_range, countries, data):
     elif data == 'Crime Rate':
         temp_df = crime
         temp_text = 'Intentional Homicides (per 100.000 people)'
+    elif data == 'Receipts':
+        temp_df = receipts
+        temp_text = 'Receipts (US$)'
     else:  # data == 'Capital Investment'
         temp_df = investment
         temp_text = 'Capital Investment in Travel and Tourism in US$ (in bn)'
@@ -294,6 +307,8 @@ def bar_plots(year_range, countries, data):
         temp_df2 = df.loc[df['Indicator Code'] == 'ST.INT.ARVL', ['Country Name', 'Region', 'IncomeGroup']]
     elif data == 'Departures':
         temp_df2 = df.loc[df['Indicator Code'] == 'ST.INT.DPRT', ['Country Name', 'Region', 'IncomeGroup']]
+    elif data == 'Receipts':
+        temp_df2 = df.loc[df['Indicator Code'] == 'ST.INT.RCPT.CD', ['Country Name', 'Region', 'IncomeGroup']]
     elif data == 'Crime Rate':
         temp_df2 = crime
     else:  # data == 'Capital Investment'
@@ -344,6 +359,10 @@ def map_sunburst(year, data):
         temp_df = departures
         temp_text = 'Number of Departures: '
         temp_text2 = 'Number of Departures '
+    elif data == 'Receipts':
+        temp_df = receipts
+        temp_text = 'Receipts: '
+        temp_text2 = 'Receipts (US$) '
     elif data == 'Crime Rate':
         temp_df = crime
         temp_text = 'Number of Intentional Homicides (per 100.000 people): '
@@ -363,7 +382,7 @@ def map_sunburst(year, data):
                            z=temp_df[str(year)],
                            text=temp_df['Country Name'],
                            colorscale='YlGnBu',
-                           colorbar=dict(title='Number of ' + data),
+                           colorbar=dict(title=temp_text2),
                            hovertemplate='%{text} <br>' + temp_text + '%{z}',
                            name=''
                            )
@@ -387,6 +406,9 @@ def map_sunburst(year, data):
         temp_df2.dropna()
     elif data == 'Departures':
         temp_df2 = df.loc[df['Indicator Code'] == 'ST.INT.DPRT', ['Country Name', 'Region', str(year)]]
+        temp_df2.dropna()
+    elif data == 'Receipts':
+        temp_df2 = df.loc[df['Indicator Code'] == 'ST.INT.RCPT.CD', ['Country Name', 'Region', str(year)]]
         temp_df2.dropna()
     elif data == 'Crime Rate':
         temp_df2 = crime
