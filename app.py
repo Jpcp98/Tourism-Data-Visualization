@@ -40,6 +40,13 @@ except ImportError:
     install("pandas")
 finally:
     import pandas as pd
+    
+try:
+    import gunicorn
+except ImportError:
+    install("gunicorn")
+finally:
+    import gunicorn
 
 import dash_core_components as dcc
 import dash_html_components as html
