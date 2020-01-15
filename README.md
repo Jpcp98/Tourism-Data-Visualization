@@ -1,2 +1,2 @@
 
-Enjoy the app at https://tourismdatavisualization.herokuapp.com/
+Enjoy the app at  https://tourism-data-visualization.herokuapp.com/
